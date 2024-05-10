@@ -1761,6 +1761,104 @@ declare class sqlite3_vtab_cursor extends SQLiteStruct {
   constructor(pointer?: WasmPointer);
 }
 
+declare module '@sqlite.org/sqlite-wasm' {
+  // Adapted from https://github.com/sqlite/sqlite-wasm/pull/54#issuecomment-1946048256
+  export function sqlite3Worker1Promiser(): Sqlite3Worker1Promiser
+  export function sqlite3Worker1Promiser(onready: Sqlite3Worker1PromiserOnReadyCallback): Sqlite3Worker1Promiser
+  export function sqlite3Worker1Promiser(
+    config: Sqlite3Worker1PromiserConfig,
+  ): Sqlite3Worker1Promiser
+
+  export type Sqlite3Worker1PromiserConfig = {
+    onready: Sqlite3Worker1PromiserOnReadyCallback
+    worker?: unknown
+    generateMessageId?(message: object): string
+    debug?(...args: unknown[]): void
+    onunhandled?(event: unknown): void
+  }
+
+  export type Sqlite3Worker1PromiserOnReadyCallback = (promiser: Sqlite3Worker1Promiser) => void
+
+  export type Sqlite3Worker1Promiser = (<T extends keyof Sqlite3Worker1Messages>(
+    type: T,
+    args: Sqlite3Worker1Messages[T]['args'],
+  ) => Promise<Sqlite3Worker1Messages[T]['result']>) &
+    (<T extends keyof Sqlite3Worker1Messages>(
+      options: Sqlite3Worker1PromiserMethodOptions<T>,
+    ) => Promise<Sqlite3Worker1Messages[T]['result']>)
+
+
+  export type SqliteDbId = string & { readonly __SqliteDbId: unique symbol }
+
+  export interface SqliteRowData {
+    columnNames: string[]
+    row: SqlValue[] | undefined
+    rowNumber: number | null
+  }
+
+  export interface Sqlite3Worker1Messages {
+    close: {
+      args?: {
+        dbId?: SqliteDbId
+        unlink?: boolean
+      }
+      result: {
+        filename?: string
+      }
+    }
+    'config-get': {
+      result: {
+        version: object
+        bigIntEnabled: boolean
+        vfsList: unknown
+      }
+    }
+    exec: {
+      args: {
+        dbId?: SqliteDbId
+        sql: string
+        bind?: BindingSpec
+        callback?(data: SqliteRowData): void | false
+        countChanges?: boolean 
+      }
+      result: {
+        sql: string
+        bind?: BindingSpec
+        callback?(data: SqliteRowData): void | false
+        countChanges?: number
+      }
+    }
+    export: {
+      args: {
+        dbId: SqliteDbId
+      }
+      result: {
+        byteArray: Uint8Array
+        filename: string
+        mimetype: "application/x-sqlite3"
+      }
+    }
+    open: {
+      args: {
+        filename: string
+        vfs?: string
+      }
+      result: {
+        dbId: SqliteDbId
+        filename: string
+        persistent: boolean
+        vfs: string
+      }
+    }
+  }
+
+  export type Sqlite3Worker1PromiserMethodOptions<T extends keyof Sqlite3Worker1Messages> =
+    Sqlite3Worker1Messages[T] extends { args?: infer TArgs }
+      ? { type: T; args: TArgs }
+      : { type: T; args?: Sqlite3Worker1Messages[T]['args'] }
+
+}
+
 declare class sqlite3_module extends SQLiteStruct {
   iVersion: number;
 
